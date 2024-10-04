@@ -3,6 +3,8 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const colors = require('colors');
 
+const User = require("./models/userModel")
+
 const userRoutes = require('./routes/userRoutes');
 
 dotenv.config();
@@ -14,7 +16,7 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
     res.send("Chat API");
-})
+});
 
 app.use("/api/user", userRoutes);
 
