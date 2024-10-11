@@ -7,25 +7,20 @@ const bcrypt = require("bcryptjs");
 
 const accessChat = asyncHandler(async (req, res) => {
     const { userId } = req.body;
-    let chat;
 
     if (!userId) {
         res.status(400).json({ message: "UserId not provided!" });
         return;
     }
 
-    try {
-        chat = await Chat.find({
-            isGroupChat: false,
-            $and: [
-                { users: { $elemMatch: { $eq: req.user._id } } },
-                { users: { $elemMatch: { $eq: userId } } }
-            ]
-        }).populate("users", "-password").populate("latestMessage");
+    const chat = await Chat.find({
+        isGroupChat: false,
+        $and: [
+            { users: { $elemMatch: { $eq: req.user._id } } },
+            { users: { $elemMatch: { $eq: userId } } }
+        ]
+    }).populate("users", "-password").populate("latestMessage");
 
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
 
     if (chat.length > 0) {
         res.send(chat[0]);
@@ -35,16 +30,21 @@ const accessChat = asyncHandler(async (req, res) => {
             isGroupChat: false,
             users: [userId, req.user._id]
         };
-
+        console.log("before try");
         try {
+            console.log("in try");
             const newChat = await Chat.create(chatData);
+            console.log("after await");
 
-            const fullChat = Chat.findOne({ _id: newChat._id }).populate("users", "-password").populate("latestMessage");
+            const fullChat = Chat.findOne({ _id: newChat._id }).populate("users", "-password");
+            console.log(fullChat);
 
-            res.status(200).send(fullChat);
+            res.json(fullChat[0]);
+            console.log("chat created");
         } catch (error) {
             res.status(400).json({ message: error.message });
         }
+        console.log("finish");
     }
 });
 
