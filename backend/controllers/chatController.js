@@ -30,21 +30,15 @@ const accessChat = asyncHandler(async (req, res) => {
             isGroupChat: false,
             users: [userId, req.user._id]
         };
-        console.log("before try");
         try {
-            console.log("in try");
             const newChat = await Chat.create(chatData);
-            console.log("after await");
 
             const fullChat = Chat.findOne({ _id: newChat._id }).populate("users", "-password");
-            console.log(fullChat);
 
             res.json(fullChat[0]);
-            console.log("chat created");
         } catch (error) {
             res.status(400).json({ message: error.message });
         }
-        console.log("finish");
     }
 });
 
@@ -198,6 +192,27 @@ const removeFromGroup = asyncHandler(async (req, res) => {
     }
 });
 
+const deleteGroup = asyncHandler(async (req, res) => {
+    const {chatId} = req.body;
+
+    if(!chatId) {
+        res.status(400).json({message: "Chat ID not provided!"});
+        return;
+    }
+
+    try {
+        const deleted = await Chat.findByIdAndDelete(chatId);
+        if(deleted) {
+            res.status(200).json(deleted);
+        }
+        else {
+            res.status(400).json({message: "No chat with that id."});
+        }
+    } catch (error) {
+        res.status(400).json({message: error});
+    }
+});
+
 
 
 
@@ -247,4 +262,4 @@ const removeFromGroup = asyncHandler(async (req, res) => {
 //     }
 // });
 
-module.exports = { accessChat, fetchChats, createGroupChat, renameGroup, addToGroup, removeFromGroup }
+module.exports = { accessChat, fetchChats, createGroupChat, renameGroup, addToGroup, removeFromGroup, deleteGroup }
