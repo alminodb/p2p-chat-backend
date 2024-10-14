@@ -7,6 +7,7 @@ const User = require("./models/userModel")
 
 const userRoutes = require('./routes/userRoutes');
 const chatRoutes = require("./routes/chatRoutes");
+const messageRoute = require('./routes/messageRoutes');
 
 dotenv.config();
 const PORT = process.env.PORT || 5000;
@@ -21,5 +22,6 @@ app.get("/", (req, res) => {
 
 app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/message", messageRoute);
 
 app.listen(PORT, console.log(`Server started on PORT ${PORT}`.magenta.bold));
