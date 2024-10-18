@@ -34,12 +34,27 @@ const io = require("socket.io")(server, {
 
 });
 
+let activeUsers = [];
+
 io.on("connection", (socket) => {
-    console.log("Connected to socket.io");
+    console.log("User connected.");
+
     socket.on("setup", (userData) => {
         socket.join(userData._id);
         socket.emit("connected");
+        console.log(`User joined: ${userData.name}`);
+
+        if (!activeUsers.includes(userData._id)) {
+            activeUsers.push(userData._id);
+            activeUsers.forEach(us => {
+                socket.to(us).emit("get active users", activeUsers);
+            });
+        }
     });
+
+    socket.on("find active users", (uData) => {
+        socket.nsp.to(uData._id).emit("get active users", activeUsers);
+    })
 
     // socket.on("join chat", (room) => {
     //     socket.join(room);
@@ -49,19 +64,32 @@ io.on("connection", (socket) => {
     // socket.on("typing", (room) => socket.in(room).emit("typing"));
     // socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
 
-    socket.on("new message", (newMessageRecieved) => {
-        var chat = newMessageRecieved.chat;
+    socket.on("new message", (newMessageReceived) => {
+        var chat = newMessageReceived.chat;
+
 
         if (!chat.users) return console.log("chat.users not defined");
 
         chat.users.forEach((user) => {
-            if (user._id == newMessageRecieved.sender._id) return;
+            if (user._id == newMessageReceived.sender._id) return;
 
-            socket.in(user._id).emit("message recieved", newMessageRecieved);
+            socket.in(user._id).emit("message received", newMessageReceived);
         });
-
-        // ovdje bi se moglo i na drugi nacin uradit
     });
+
+    socket.on("disconnect", () => {
+        console.log("User disconnected.");
+
+        const rooms = Array.from(socket.rooms);
+        activeUsers.forEach((active, index) => {
+            if(!rooms.includes(active)) {
+                activeUsers.splice(index+1);
+            }
+        });
+        activeUsers && activeUsers.forEach((active) => {
+            socket.to(active).emit("get active users", activeUsers);
+        });
+    })
 
     socket.off("setup", () => {
         console.log("USER DISCONNECTED");
