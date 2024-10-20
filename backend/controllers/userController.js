@@ -71,4 +71,184 @@ const allUsers = asyncHandler(async (req, res) => {
     res.send(users);
 });
 
-module.exports = { registerUser, loginUser, allUsers }
+//////////////////////////////////////// friends system
+
+const addFriend = asyncHandler(async (req, res) => {
+    const { userId } = req.body;
+
+    if (!userId) {
+        res.status(400).json({ message: "User ID not provided!" });
+        return;
+    }
+
+    if (req.user.friends.includes(userId)) {
+        return res.status(400).json({ message: "You already are friends with that user." });
+    }
+
+    if (req.user.pendingFriends.includes(userId)) {
+        return res.status(400).json({ message: "You already added this user as a friend." });
+    }
+
+    const data = await User.findOne({
+        _id: userId,
+        pendingFriends: {
+            $elemMatch: { $eq: req.user._id }
+        }
+    });
+
+    if (data) {
+        return res.status(400).json({ message: "You already sent this user a friend request." });
+    }
+
+    try {
+        const added = await User.findByIdAndUpdate(
+            userId,
+            {
+                $push: { pendingFriends: req.user._id }
+            }
+        );
+
+        res.status(200).send(added);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+const acceptFriend = asyncHandler(async (req, res) => {
+    const { userId } = req.body;
+
+    if (!userId) {
+        res.status(400).json({ message: "User ID not provided!" });
+        return;
+    }
+
+    if (req.user.friends.includes(userId)) {
+        return res.status(400).json({ message: "This user is already your friend." });
+    }
+
+    if (!req.user.pendingFriends.includes(userId)) {
+        return res.status(400).json({ message: "This user didn't sent you a friend request." });
+    }
+
+    try {
+
+        await User.findByIdAndUpdate(
+            userId,
+            {
+                $push: { friends: req.user._id }
+            },
+            {
+                new: true
+            }
+        );
+
+        const adder = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $push: { friends: userId },
+                $pull: { pendingFriends: userId }
+            },
+            {
+                new: true
+            }
+        ).populate("friends", "-password").populate("pendingFriends", "-password");
+
+        res.status(200).send(adder);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+const declineFriend = asyncHandler(async (req, res) => {
+    const { userId } = req.body;
+
+    if (!userId) {
+        res.status(400).json({ message: "User ID not provided!" });
+        return;
+    }
+
+    if (req.user.friends.includes(userId)) {
+        return res.status(400).json({ message: "This user is already your friend." });
+    }
+
+    if (!req.user.pendingFriends.includes(userId)) {
+        return res.status(400).json({ message: "This user didn't sent you a friend request." });
+    }
+
+    try {
+
+        const adder = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $pull: { pendingFriends: userId }
+            },
+            {
+                new: true
+            }
+        ).populate("friends", "-password").populate("pendingFriends", "-password");
+
+        res.status(200).send(adder);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+const removeFriend = asyncHandler(async (req, res) => {
+
+    const { userId } = req.body;
+
+    if (!userId) {
+        res.status(400).json({ message: "User ID not provided!" });
+        return;
+    }
+
+    if (!req.user.friends.includes(userId)) {
+        return res.status(400).json({ message: "This user is not in your friend list." });
+    }
+
+    try {
+        const data = await User.findByIdAndUpdate(
+            req.user._id,
+            {
+                $pull: { friends: userId }
+            },
+            {
+                new: true
+            }
+        ).populate("friends", "-password").populate("pendingFriends", "-password");
+
+        await User.findByIdAndUpdate(
+            userId,
+            {
+                $pull: { friends: req.user._id }
+            },
+            {
+                new: true
+            }
+        );
+
+        res.status(200).send(data);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+
+});
+
+const getAllFriends = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+
+    if (!userId) {
+        res.status(400).json({ message: "User ID not provided!" });
+        return;
+    }
+
+    try {
+        const data = await User.findById(userId).populate("friends", "-password")
+
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+module.exports = { registerUser, loginUser, allUsers, addFriend, acceptFriend, declineFriend, removeFriend, getAllFriends }
