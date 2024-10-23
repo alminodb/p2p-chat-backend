@@ -41,7 +41,7 @@ const loginUser = asyncHandler(async (req, res) => {
         res.status(400).json({ message: "You need to fill email and password!" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate("friends", "-password").populate("pendingFriends", "-password");
 
     if (user && (await bcrypt.compare(password, user.password))) {
         res.status(201);
@@ -50,6 +50,8 @@ const loginUser = asyncHandler(async (req, res) => {
             name: user.name,
             email: user.email,
             pic: user.picture,
+            friends: user.friends,
+            pendingFriends: user.pendingFriends,
             token: generateToken(user._id)
         });
     }

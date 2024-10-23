@@ -44,12 +44,11 @@ io.on("connection", (socket) => {
         socket.emit("connected");
         console.log(`User joined: ${userData.name}`);
 
-        if (!activeUsers.includes(userData._id)) {
-            activeUsers.push(userData._id);
-            activeUsers.forEach(us => {
-                socket.to(us).emit("get active users", activeUsers);
-            });
+        if (!activeUsers.some((user) => user.userId === userData._id)) {
+            activeUsers.push({ userId: userData._id, socketId: socket.id });
         }
+
+        io.emit("get active users", activeUsers);
     });
 
     socket.on("find active users", (uData) => {
@@ -67,34 +66,24 @@ io.on("connection", (socket) => {
 
             socket.in(user._id).emit("message received", newMessageReceived);
         });
+
+        console.log(newMessageReceived.content)
     });
 
     socket.on("disconnect", () => {
         console.log("User disconnected.");
 
-        const rooms = Array.from(socket.rooms);
-        activeUsers.forEach((active, index) => {
-            if(!rooms.includes(active)) {
-                activeUsers.splice(index+1);
-            }
-        });
-        activeUsers && activeUsers.forEach((active) => {
-            socket.to(active).emit("get active users", activeUsers);
-        });
+        activeUsers = activeUsers.filter((user) => user.socketId !== socket.id);
+        io.emit("get active users", activeUsers);
+
     });
 
     socket.on("log out", (userData) => {
         console.log("USER LOGGED OUT");
         socket.leave(userData._id);
 
-        const rooms = Array.from(socket.rooms);
-        activeUsers.forEach((active, index) => {
-            if(!rooms.includes(active)) {
-                activeUsers.splice(index+1);
-            }
-        });
-        activeUsers && activeUsers.forEach((active) => {
-            socket.to(active).emit("get active users", activeUsers);
-        });
+        activeUsers = activeUsers.filter((user) => user.socketId !== socket.id);
+        io.emit("get active users", activeUsers);
+
     });
 });
