@@ -1,10 +1,11 @@
 const express = require('express');
-const { registerUser, loginUser, allUsers, acceptFriend, addFriend, removeFriend, getAllFriends, declineFriend } = require('../controllers/userController');
+const { registerUser, loginUser, allUsers, acceptFriend, addFriend, removeFriend, getAllFriends, declineFriend, fetchMyInfo } = require('../controllers/userController');
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 router.route("/").post(registerUser).get(protect, allUsers);
+router.route("/me").get(protect, fetchMyInfo);
 router.post("/login", loginUser);
 
 router.route("/friend/add").post(protect, addFriend);

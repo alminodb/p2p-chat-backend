@@ -73,6 +73,21 @@ const allUsers = asyncHandler(async (req, res) => {
     res.send(users);
 });
 
+const fetchMyInfo = asyncHandler(async (req, res) => {
+
+    let user = await User.findById(req.user._id).populate("friends", "-password").populate("pendingFriends", "-password");
+
+    res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        pic: user.picture,
+        friends: user.friends,
+        pendingFriends: user.pendingFriends,
+        token: generateToken(user._id)
+    });
+});
+
 //////////////////////////////////////// friends system
 
 const addFriend = asyncHandler(async (req, res) => {
@@ -134,7 +149,7 @@ const acceptFriend = asyncHandler(async (req, res) => {
 
     try {
 
-        await User.findByIdAndUpdate(
+        const added = await User.findByIdAndUpdate(
             userId,
             {
                 $push: { friends: req.user._id }
@@ -144,7 +159,7 @@ const acceptFriend = asyncHandler(async (req, res) => {
             }
         );
 
-        const adder = await User.findByIdAndUpdate(
+        await User.findByIdAndUpdate(
             req.user._id,
             {
                 $push: { friends: userId },
@@ -155,7 +170,7 @@ const acceptFriend = asyncHandler(async (req, res) => {
             }
         ).populate("friends", "-password").populate("pendingFriends", "-password");
 
-        res.status(200).send(adder);
+        res.status(200).send(added);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -209,7 +224,7 @@ const removeFriend = asyncHandler(async (req, res) => {
     }
 
     try {
-        const data = await User.findByIdAndUpdate(
+        await User.findByIdAndUpdate(
             req.user._id,
             {
                 $pull: { friends: userId }
@@ -219,7 +234,7 @@ const removeFriend = asyncHandler(async (req, res) => {
             }
         ).populate("friends", "-password").populate("pendingFriends", "-password");
 
-        await User.findByIdAndUpdate(
+        const data = await User.findByIdAndUpdate(
             userId,
             {
                 $pull: { friends: req.user._id }
@@ -245,7 +260,7 @@ const getAllFriends = asyncHandler(async (req, res) => {
     }
 
     try {
-        const data = await User.findById(userId).populate("friends", "-password")
+        const data = await User.findById(userId).populate("friends", "-password").populate("pendingFriends", "-password");
 
         res.status(200).json(data);
     } catch (error) {
@@ -253,4 +268,4 @@ const getAllFriends = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { registerUser, loginUser, allUsers, addFriend, acceptFriend, declineFriend, removeFriend, getAllFriends }
+module.exports = { registerUser, loginUser, allUsers, addFriend, acceptFriend, declineFriend, removeFriend, getAllFriends, fetchMyInfo }
