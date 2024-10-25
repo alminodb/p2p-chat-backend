@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, loginUser, allUsers, acceptFriend, addFriend, removeFriend, getAllFriends, declineFriend, fetchMyInfo } = require('../controllers/userController');
+const { registerUser, loginUser, allUsers, acceptFriend, addFriend, removeFriend, getAllFriends, declineFriend, fetchMyInfo, getAllNotifications } = require('../controllers/userController');
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
