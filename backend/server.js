@@ -88,4 +88,9 @@ io.on("connection", (socket) => {
         io.emit("get active users", activeUsers);
 
     });
+
+    socket.on("send notification", (notification) => {
+        console.log("lets see this shit");
+        socket.to(notification.receiver._id).emit("get notification", notification);
+    })
 });

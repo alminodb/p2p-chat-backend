@@ -7,7 +7,7 @@ const getNotifications = asyncHandler(async (req, res) => {
     try {
         const notifications = await Notification.find({
             receiver: { $eq: user._id }
-        }).populate("receiver", "-password");
+        }).populate("receiver", "-password").populate("chat");
 
         res.status(200).send(notifications);
     } catch (error) {
@@ -21,10 +21,11 @@ const sendNotification = asyncHandler(async (req, res) => {
 
     if (!receiver || !notificationType) return res.status(400).json({ message: "You need to provide receiver and notificationType!" });
 
-    const title = (notificationType === "message") ? `${sender.name} sent you a message.` : "New friend request from ${sender.name}";
+    const title = (notificationType === "message") ? `${sender.name} sent you a message.` : `New friend request from ${sender.name}`;
     if (notificationType === "message" && !chatId) return res.status(400).json({ message: "You need to provide chatId!" });
 
     try {
+
         const notificationData = {
             title: title,
             sender: sender._id,
@@ -33,8 +34,19 @@ const sendNotification = asyncHandler(async (req, res) => {
             notificationType: notificationType
         };
 
-        const newNotification = await Notification.create(notificationData);
-        const fullNotification = await Notification.findById(newNotification._id).populate("sender", "-password").populate("receiver", "-password");
+        const newNotification = await Notification.findOneAndUpdate(
+            {
+                $and: [
+                    { sender: { $eq: sender._id } },
+                    { receiver: { $eq: receiver } },
+                    { chat: { $eq: chatId } }
+                ]
+            },
+            { $setOnInsert: notificationData },
+            { new: true, upsert: true }
+        );
+
+        const fullNotification = await Notification.findById(newNotification._id).populate("sender", "-password").populate("receiver", "-password").populate("chat");
 
         res.status(200).send(fullNotification);
     } catch (error) {
